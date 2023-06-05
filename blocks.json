@@ -1,0 +1,1 @@
+[{"BlockNumber":1,"PrevBlockHash":"0xabc123","Status":"committed","ProcessingTime":"2023-06-05T20:33:17.0358052+05:30","Txns":{"":{"TxnId":"","Value":null,"IsValid":true,"Data":{"SIM1":{"val":2,"ver":2,"valid":true},"SIM2":{"val":3,"ver":2,"valid":true},"SIM3":{"val":3,"ver":1,"valid":false}}}}}]
