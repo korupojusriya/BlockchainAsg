@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -27,6 +28,7 @@ type Entry struct {
 	Val   float64 `json:"val"`
 	Ver   float64 `json:"ver"`
 	Valid bool    `json:"valid"`
+	Hash  string  `json:"hash"`
 }
 
 type Block interface {
@@ -54,19 +56,26 @@ func (b *MyBlock) pushValidTransactions(initialState map[string]Entry, InputTxns
 
 	for _, txn := range InputTxns {
 		for key, value := range txn {
+			// Calculate hash using previous block's hash and transaction data
+			hashInput := fmt.Sprintf("%s:%s", b.PrevBlockHash, key)
+			hash := sha256.Sum256([]byte(hashInput))
+
 			if entry, ok := dbEntries[key]; ok {
 				if entry.Ver == value.Ver {
 					entry.Val = value.Val
 					entry.Ver++
 					entry.Valid = true
+					entry.Hash = fmt.Sprintf("%x", hash)
 					newdb[key] = entry
 				} else {
 					entry.Valid = false
+					entry.Hash = fmt.Sprintf("%x", hash)
 					newdb[key] = entry
 				}
 			}
 			if _, ok := newdb[key]; !ok {
 				value.Valid = false
+				value.Hash = fmt.Sprintf("%x", hash)
 				newdb[key] = value
 			}
 		}
@@ -89,6 +98,7 @@ type BlockWriter chan MyBlock
 func (bw BlockWriter) WriteBlock(block MyBlock) {
 	bw <- block
 }
+
 func writeBlocksToFile(blocks []MyBlock) error {
 	fileName := "blocks.json"
 
@@ -188,7 +198,13 @@ func main() {
 
 	block.UpdateBlockStatus(Committed)
 
-	// ...
+	// Print the hash of each transaction in the block
+	for txnID, txn := range block.Txns {
+		fmt.Printf("Transaction ID: %s\n", txnID)
+		for key, entry := range txn.Data {
+			fmt.Printf("  Key: %s, Hash: %s\n", key, entry.Hash)
+		}
+	}
 
 	blocks = append(blocks, block)
 
