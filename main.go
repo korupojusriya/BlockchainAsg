@@ -198,7 +198,6 @@ func main() {
 
 	block.UpdateBlockStatus(Committed)
 
-	// Print the hash of each transaction in the block
 	for txnID, txn := range block.Txns {
 		fmt.Printf("Transaction ID: %s\n", txnID)
 		for key, entry := range txn.Data {
