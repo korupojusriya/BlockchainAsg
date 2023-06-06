@@ -8,7 +8,7 @@ import (
 	"math"
 	"sync"
 	"time"
-
+"log"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
@@ -51,39 +51,29 @@ func (b *MyBlock) pushValidTransactions(db *leveldb.DB, InputTxns []map[string]E
 
 	newdb := make(map[string]Entry)
 
-	iter := db.NewIterator(nil, nil)
-	defer iter.Release()
-
-	for iter.Next() {
-		key := string(iter.Key())
-		value := iter.Value()
-		entry := Entry{}
-		err := json.Unmarshal(value, &entry)
-		if err != nil {
-			// Handle error
-		}
-		newdb[key] = entry
-	}
-
 	for _, txn := range InputTxns {
 		for key, value := range txn {
 			// Calculate hash using previous block's hash and transaction data
 			hashInput := fmt.Sprintf("%s:%s", b.PrevBlockHash, key)
 			hash := sha256.Sum256([]byte(hashInput))
 
-			if entry, ok := newdb[key]; ok {
-				if entry.Ver == value.Ver {
-					entry.Val = value.Val
-					entry.Ver++
-					entry.Valid = true
-					entry.Hash = fmt.Sprintf("%x", hash)
-					newdb[key] = entry
-				} else {
-					entry.Valid = false
+			data, err := db.Get([]byte(key), nil)
+			if err == nil {
+				var entry Entry
+				err = json.Unmarshal(data, &entry)
+				if err == nil {
+					if entry.Ver == value.Ver {
+						entry.Val = value.Val
+						entry.Ver++
+						entry.Valid = true
+					} else {
+						entry.Valid = false
+					}
 					entry.Hash = fmt.Sprintf("%x", hash)
 					newdb[key] = entry
 				}
 			}
+
 			if _, ok := newdb[key]; !ok {
 				value.Valid = false
 				value.Hash = fmt.Sprintf("%x", hash)
@@ -99,6 +89,7 @@ func (b *MyBlock) pushValidTransactions(db *leveldb.DB, InputTxns []map[string]E
 
 	txnChan <- transaction
 }
+
 
 func (b *MyBlock) UpdateBlockStatus(status BlockStatus) {
 	b.Status = status
@@ -167,14 +158,35 @@ func fetchAllBlockDetails() ([]MyBlock, error) {
 }
 
 func main() {
-	// Open LevelDB connection
-	db, err := leveldb.OpenFile("path/to/your/leveldb", nil)
+	db, err := leveldb.OpenFile("leveldb", nil)
 	if err != nil {
 		fmt.Println("Error opening LevelDB:", err)
 		return
 	}
 	defer db.Close()
+	for i := 1; i <= 1000; i++ {
+		key := fmt.Sprintf("SIM%d", i)
+		value := Entry{
+			Val:   (float64)(i),
+			Ver:   1.0,
+			Valid: true,
+		}
 
+		// Calculate hash for the entry
+		hashInput := fmt.Sprintf("%s:%f", key, value.Val)
+		hash := sha256.Sum256([]byte(hashInput))
+		value.Hash = fmt.Sprintf("%x", hash)
+
+		data, err := json.Marshal(value)
+		if err != nil {
+			log.Fatal("Error serializing entry:", err)
+		}
+
+		err = db.Put([]byte(key), data, nil)
+		if err != nil {
+			log.Fatal("Error inserting entry into LevelDB:", err)
+		}
+	}
 	block := MyBlock{
 		BlockNumber:   1,
 		Status:        Pending,
@@ -211,6 +223,7 @@ func main() {
 
 	block.UpdateBlockStatus(Committed)
 
+	// Print the hash of each transaction in the block
 	for txnID, txn := range block.Txns {
 		fmt.Printf("Transaction ID: %s\n", txnID)
 		for key, entry := range txn.Data {
@@ -225,8 +238,25 @@ func main() {
 		fmt.Println("Error writing blocks to file:", err)
 		return
 	}
+	output := map[string]interface{}{
+		"blockNumber":   block.BlockNumber,
+		"prevBlockHash": block.PrevBlockHash,
+		"status":        block.Status,
+		"processingTime": block.ProcessingTime.String(),
+		"txns":          []map[string]Entry{},
+	}
 
-	// Fetch block details by block number
+	for _, txn := range block.Txns {
+		data := make(map[string]Entry)
+		for key, value := range txn.Data {
+			data[key] = value
+		}
+		output["txns"] = append(output["txns"].([]map[string]Entry), data)
+	}
+
+	outputJSON, _ := json.MarshalIndent(output, "", "  ")
+	fmt.Println(string(outputJSON))
+
 	blockNumber := 1
 	fetchedBlock, err := fetchBlockDetailsByNumber(blockNumber)
 	if err != nil {
@@ -244,38 +274,33 @@ func main() {
 			fmt.Printf("  Data:\n")
 			for key, entry := range txn.Data {
 				fmt.Printf("    Key: %s\n", key)
-				fmt.Printf("    Value: %f\n", entry.Val)
-				fmt.Printf("    Ver: %f\n", entry.Ver)
-				fmt.Printf("    Valid: %t\n", entry.Valid)
-				fmt.Printf("    Hash: %s\n", entry.Hash)
+				fmt.Printf("    Value: %v\n", entry)
 			}
 		}
 	}
 
-	// Fetch all block details
 	allBlocks, err := fetchAllBlockDetails()
 	if err != nil {
 		fmt.Println("Error fetching all block details:", err)
 	} else {
-		fmt.Println("Fetched All Block Details:")
+		fmt.Println("All Block Details:")
 		for _, block := range allBlocks {
 			fmt.Printf("Block Number: %d\n", block.BlockNumber)
 			fmt.Printf("Prev Block Hash: %s\n", block.PrevBlockHash)
 			fmt.Printf("Status: %s\n", block.Status)
 			fmt.Printf("Processing Time: %s\n", block.ProcessingTime)
-			fmt.Printf("Transactions:\n")
+			fmt.Println("Transactions:")
 			for txnID, txn := range block.Txns {
 				fmt.Printf("  TxnID: %s\n", txnID)
 				fmt.Printf("  IsValid: %t\n", txn.IsValid)
-				fmt.Printf("  Data:\n")
+				fmt.Println("  Data:")
 				for key, entry := range txn.Data {
 					fmt.Printf("    Key: %s\n", key)
-					fmt.Printf("    Value: %f\n", entry.Val)
-					fmt.Printf("    Ver: %f\n", entry.Ver)
-					fmt.Printf("    Valid: %t\n", entry.Valid)
-					fmt.Printf("    Hash: %s\n", entry.Hash)
+					fmt.Printf("    Value: %v\n", entry)
 				}
 			}
+			fmt.Println("------------------------")
+			fmt.Println("")
 		}
 	}
 }
