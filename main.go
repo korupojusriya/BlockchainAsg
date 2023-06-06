@@ -171,8 +171,6 @@ func main() {
 	txnChan := make(chan Transaction)
 	var blocks []MyBlock
 
-	// ...
-
 	for i := 0; i < len(InputTxns); i += transactionsPerBlock {
 		wg.Add(1)
 		block.ProcessingTime = time.Now()
@@ -217,8 +215,6 @@ func main() {
 
 	outputJSON, _ := json.MarshalIndent(output, "", "  ")
 	fmt.Println(string(outputJSON))
-
-	// Fetch block details by block number
 	blockNumber := 1
 	fetchedBlock, err := fetchBlockDetailsByNumber(blockNumber)
 	if err != nil {
@@ -240,8 +236,6 @@ func main() {
 			}
 		}
 	}
-
-	// Fetch details of all blocks
 	allBlocks, err := fetchAllBlockDetails()
 	if err != nil {
 		fmt.Println("Error fetching all block details:", err)
