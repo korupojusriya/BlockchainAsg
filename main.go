@@ -8,6 +8,8 @@ import (
 	"math"
 	"sync"
 	"time"
+
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 type BlockStatus string
@@ -44,14 +46,23 @@ type MyBlock struct {
 	Txns          map[string]Transaction
 }
 
-func (b *MyBlock) pushValidTransactions(initialState map[string]Entry, InputTxns []map[string]Entry, wg *sync.WaitGroup, txnChan chan Transaction) {
+func (b *MyBlock) pushValidTransactions(db *leveldb.DB, InputTxns []map[string]Entry, wg *sync.WaitGroup, txnChan chan Transaction) {
 	defer wg.Done()
 
-	dbEntries := make(map[string]Entry)
 	newdb := make(map[string]Entry)
 
-	for k, v := range initialState {
-		dbEntries[k] = v
+	iter := db.NewIterator(nil, nil)
+	defer iter.Release()
+
+	for iter.Next() {
+		key := string(iter.Key())
+		value := iter.Value()
+		entry := Entry{}
+		err := json.Unmarshal(value, &entry)
+		if err != nil {
+			// Handle error
+		}
+		newdb[key] = entry
 	}
 
 	for _, txn := range InputTxns {
@@ -60,7 +71,7 @@ func (b *MyBlock) pushValidTransactions(initialState map[string]Entry, InputTxns
 			hashInput := fmt.Sprintf("%s:%s", b.PrevBlockHash, key)
 			hash := sha256.Sum256([]byte(hashInput))
 
-			if entry, ok := dbEntries[key]; ok {
+			if entry, ok := newdb[key]; ok {
 				if entry.Ver == value.Ver {
 					entry.Val = value.Val
 					entry.Ver++
@@ -156,17 +167,19 @@ func fetchAllBlockDetails() ([]MyBlock, error) {
 }
 
 func main() {
+	// Open LevelDB connection
+	db, err := leveldb.OpenFile("path/to/your/leveldb", nil)
+	if err != nil {
+		fmt.Println("Error opening LevelDB:", err)
+		return
+	}
+	defer db.Close()
+
 	block := MyBlock{
 		BlockNumber:   1,
 		Status:        Pending,
 		PrevBlockHash: "0xabc123",
 		Txns:          make(map[string]Transaction),
-	}
-
-	initialState := make(map[string]Entry)
-	for i := 1; i <= 1000; i++ {
-		key := fmt.Sprintf("SIM%d", i)
-		initialState[key] = Entry{Val: float64(i), Ver: 1.0}
 	}
 
 	InputTxns := []map[string]Entry{
@@ -184,7 +197,7 @@ func main() {
 	for i := 0; i < len(InputTxns); i += transactionsPerBlock {
 		wg.Add(1)
 		block.ProcessingTime = time.Now()
-		go block.pushValidTransactions(initialState, InputTxns[i:int(math.Min(float64(i+transactionsPerBlock), float64(len(InputTxns))))], &wg, txnChan)
+		go block.pushValidTransactions(db, InputTxns[i:int(math.Min(float64(i+transactionsPerBlock), float64(len(InputTxns))))], &wg, txnChan)
 	}
 
 	go func() {
@@ -207,29 +220,13 @@ func main() {
 
 	blocks = append(blocks, block)
 
-	err := writeBlocksToFile(blocks)
+	err = writeBlocksToFile(blocks)
 	if err != nil {
 		fmt.Println("Error writing blocks to file:", err)
 		return
 	}
-	output := map[string]interface{}{
-		"blockNumber":   block.BlockNumber,
-		"prevBlockHash": block.PrevBlockHash,
-		"status":        block.Status,
-		"processingTime": block.ProcessingTime.String(),
-		"txns":          []map[string]Entry{},
-	}
 
-	for _, txn := range block.Txns {
-		data := make(map[string]Entry)
-		for key, value := range txn.Data {
-			data[key] = value
-		}
-		output["txns"] = append(output["txns"].([]map[string]Entry), data)
-	}
-
-	outputJSON, _ := json.MarshalIndent(output, "", "  ")
-	fmt.Println(string(outputJSON))
+	// Fetch block details by block number
 	blockNumber := 1
 	fetchedBlock, err := fetchBlockDetailsByNumber(blockNumber)
 	if err != nil {
@@ -247,31 +244,38 @@ func main() {
 			fmt.Printf("  Data:\n")
 			for key, entry := range txn.Data {
 				fmt.Printf("    Key: %s\n", key)
-				fmt.Printf("    Value: %v\n", entry)
+				fmt.Printf("    Value: %f\n", entry.Val)
+				fmt.Printf("    Ver: %f\n", entry.Ver)
+				fmt.Printf("    Valid: %t\n", entry.Valid)
+				fmt.Printf("    Hash: %s\n", entry.Hash)
 			}
 		}
 	}
+
+	// Fetch all block details
 	allBlocks, err := fetchAllBlockDetails()
 	if err != nil {
 		fmt.Println("Error fetching all block details:", err)
 	} else {
-		fmt.Println("All Block Details:")
+		fmt.Println("Fetched All Block Details:")
 		for _, block := range allBlocks {
 			fmt.Printf("Block Number: %d\n", block.BlockNumber)
 			fmt.Printf("Prev Block Hash: %s\n", block.PrevBlockHash)
 			fmt.Printf("Status: %s\n", block.Status)
 			fmt.Printf("Processing Time: %s\n", block.ProcessingTime)
-			fmt.Println("Transactions:")
+			fmt.Printf("Transactions:\n")
 			for txnID, txn := range block.Txns {
 				fmt.Printf("  TxnID: %s\n", txnID)
 				fmt.Printf("  IsValid: %t\n", txn.IsValid)
-				fmt.Println("  Data:")
+				fmt.Printf("  Data:\n")
 				for key, entry := range txn.Data {
 					fmt.Printf("    Key: %s\n", key)
-					fmt.Printf("    Value: %v\n", entry)
+					fmt.Printf("    Value: %f\n", entry.Val)
+					fmt.Printf("    Ver: %f\n", entry.Ver)
+					fmt.Printf("    Valid: %t\n", entry.Valid)
+					fmt.Printf("    Hash: %s\n", entry.Hash)
 				}
 			}
-			fmt.Println("------------------------")
 		}
 	}
 }
