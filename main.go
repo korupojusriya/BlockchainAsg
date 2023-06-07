@@ -8,7 +8,7 @@ import (
 	"math"
 	"sync"
 	"time"
-"log"
+        "log"
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
@@ -53,7 +53,6 @@ func (b *MyBlock) pushValidTransactions(db *leveldb.DB, InputTxns []map[string]E
 
 	for _, txn := range InputTxns {
 		for key, value := range txn {
-			// Calculate hash using previous block's hash and transaction data
 			hashInput := fmt.Sprintf("%s:%s", b.PrevBlockHash, key)
 			hash := sha256.Sum256([]byte(hashInput))
 
@@ -172,7 +171,6 @@ func main() {
 			Valid: true,
 		}
 
-		// Calculate hash for the entry
 		hashInput := fmt.Sprintf("%s:%f", key, value.Val)
 		hash := sha256.Sum256([]byte(hashInput))
 		value.Hash = fmt.Sprintf("%x", hash)
@@ -223,7 +221,6 @@ func main() {
 
 	block.UpdateBlockStatus(Committed)
 
-	// Print the hash of each transaction in the block
 	for txnID, txn := range block.Txns {
 		fmt.Printf("Transaction ID: %s\n", txnID)
 		for key, entry := range txn.Data {
