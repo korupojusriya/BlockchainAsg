@@ -1,0 +1,42 @@
+=============== Jun 8, 2023 (IST) ===============
+20:06:50.882007 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+20:06:50.888737 db@open opening
+20:06:50.889957 version@stat F·[] S·0B[] Sc·[]
+20:06:50.895215 db@janitor F·2 G·0
+20:06:50.895215 db@open done T·6.4781ms
+20:06:50.936351 db@close closing
+20:06:50.936974 db@close done T·622.7µs
+=============== Jun 8, 2023 (IST) ===============
+20:08:20.642729 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+20:08:20.643766 version@stat F·[] S·0B[] Sc·[]
+20:08:20.643766 db@open opening
+20:08:20.643766 journal@recovery F·1
+20:08:20.645937 journal@recovery recovering @1
+20:08:20.650792 memdb@flush created L0@2 N·1000 S·79KiB "SIM1,v1":"SIM999,v999"
+20:08:20.651310 version@stat F·[1] S·79KiB[79KiB] Sc·[0.25]
+20:08:20.662617 db@janitor F·3 G·0
+20:08:20.662617 db@open done T·18.8504ms
+=============== Jun 8, 2023 (IST) ===============
+20:12:30.304365 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+20:12:30.305397 version@stat F·[1] S·79KiB[79KiB] Sc·[0.25]
+20:12:30.305397 db@open opening
+20:12:30.305911 journal@recovery F·1
+20:12:30.306494 journal@recovery recovering @3
+20:12:30.312712 memdb@flush created L0@5 N·1000 S·79KiB "SIM1,v1002":"SIM999,v2000"
+20:12:30.313733 version@stat F·[2] S·158KiB[158KiB] Sc·[0.50]
+20:12:30.324894 db@janitor F·4 G·0
+20:12:30.324894 db@open done T·19.4974ms
+20:12:30.379920 db@close closing
+20:12:30.379920 db@close done T·0s
+=============== Jun 8, 2023 (IST) ===============
+20:16:24.479005 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+20:16:24.479520 version@stat F·[2] S·158KiB[158KiB] Sc·[0.50]
+20:16:24.479520 db@open opening
+20:16:24.480042 journal@recovery F·1
+20:16:24.481074 journal@recovery recovering @6
+20:16:24.487488 memdb@flush created L0@8 N·1000 S·79KiB "SIM1,v2003":"SIM999,v3001"
+20:16:24.488038 version@stat F·[3] S·237KiB[237KiB] Sc·[0.75]
+20:16:24.498984 db@janitor F·5 G·0
+20:16:24.499569 db@open done T·20.0495ms
+20:16:24.550275 db@close closing
+20:16:24.550275 db@close done T·0s

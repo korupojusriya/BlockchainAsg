@@ -1,0 +1,40 @@
+=============== Jun 6, 2023 (IST) ===============
+22:15:05.113787 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+22:15:05.120543 db@open opening
+22:15:05.122181 version@stat F·[] S·0B[] Sc·[]
+22:15:05.127001 db@janitor F·2 G·0
+22:15:05.127001 db@open done T·6.4585ms
+22:15:05.134794 db@close closing
+22:15:05.134794 db@close done T·0s
+=============== Jun 6, 2023 (IST) ===============
+22:17:21.622460 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+22:17:21.623508 version@stat F·[] S·0B[] Sc·[]
+22:17:21.623508 db@open opening
+22:17:21.623508 journal@recovery F·1
+22:17:21.624555 journal@recovery recovering @1
+22:17:21.630754 memdb@flush created L0@2 N·3 S·161B "SIM1,v1":"SIM3,v3"
+22:17:21.632359 version@stat F·[1] S·161B[161B] Sc·[0.25]
+22:17:21.645921 db@janitor F·3 G·0
+22:17:21.645921 db@open done T·22.4128ms
+22:17:21.647561 db@close closing
+22:17:21.647561 db@close done T·0s
+=============== Jun 6, 2023 (IST) ===============
+22:18:58.542017 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+22:18:58.543176 version@stat F·[1] S·161B[161B] Sc·[0.25]
+22:18:58.543176 db@open opening
+22:18:58.543176 journal@recovery F·1
+22:18:58.544757 journal@recovery recovering @3
+22:18:58.553177 memdb@flush created L0@5 N·3 S·161B "SIM1,v5":"SIM3,v7"
+22:18:58.554228 version@stat F·[2] S·322B[322B] Sc·[0.50]
+22:18:58.566823 db@janitor F·4 G·0
+22:18:58.566823 db@open done T·23.6478ms
+=============== Jun 6, 2023 (IST) ===============
+22:19:18.081118 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+22:19:18.084148 version@stat F·[2] S·322B[322B] Sc·[0.50]
+22:19:18.084148 db@open opening
+22:19:18.084754 journal@recovery F·1
+22:19:18.087548 journal@recovery recovering @6
+22:19:18.094604 memdb@flush created L0@8 N·3 S·161B "SIM1,v9":"SIM3,v11"
+22:19:18.098691 version@stat F·[3] S·483B[483B] Sc·[0.75]
+22:19:18.115621 db@janitor F·5 G·0
+22:19:18.115621 db@open done T·31.4724ms
