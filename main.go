@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"math"
+	"math/rand"
 	"sync"
 	"time"
-        "log"
+
 	"github.com/syndtr/goleveldb/leveldb"
 )
 
@@ -82,13 +84,13 @@ func (b *MyBlock) pushValidTransactions(db *leveldb.DB, InputTxns []map[string]E
 	}
 
 	transaction := Transaction{
+		TxnId:   fmt.Sprintf("%x", sha256.Sum256([]byte(b.PrevBlockHash))),
 		Data:    newdb,
 		IsValid: true,
 	}
 
 	txnChan <- transaction
 }
-
 
 func (b *MyBlock) UpdateBlockStatus(status BlockStatus) {
 	b.Status = status
@@ -157,16 +159,19 @@ func fetchAllBlockDetails() ([]MyBlock, error) {
 }
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
+
 	db, err := leveldb.OpenFile("leveldb", nil)
 	if err != nil {
 		fmt.Println("Error opening LevelDB:", err)
 		return
 	}
 	defer db.Close()
+
 	for i := 1; i <= 1000; i++ {
 		key := fmt.Sprintf("SIM%d", i)
 		value := Entry{
-			Val:   (float64)(i),
+			Val:   float64(i),
 			Ver:   1.0,
 			Valid: true,
 		}
@@ -185,6 +190,7 @@ func main() {
 			log.Fatal("Error inserting entry into LevelDB:", err)
 		}
 	}
+
 	block := MyBlock{
 		BlockNumber:   1,
 		Status:        Pending,
@@ -192,13 +198,21 @@ func main() {
 		Txns:          make(map[string]Transaction),
 	}
 
-	InputTxns := []map[string]Entry{
-		{"SIM1": {Val: 2, Ver: 1.0}},
-		{"SIM2": {Val: 3, Ver: 1.0}},
-		{"SIM3": {Val: 4, Ver: 2.0}},
+	InputTxns := make([]map[string]Entry, 1000)
+	for i := 1; i <= 1000; i++ {
+		txn := make(map[string]Entry)
+		key := fmt.Sprintf("SIM%d", i)
+		value := Entry{
+			Val:   float64(i),
+			Ver:   float64(rand.Intn(10) + 1),
+			Valid: true,
+		}
+
+		txn[key] = value
+		InputTxns[i-1] = txn
 	}
 
-	transactionsPerBlock := 10
+	transactionsPerBlock := 20
 
 	var wg sync.WaitGroup
 	txnChan := make(chan Transaction)
@@ -236,11 +250,11 @@ func main() {
 		return
 	}
 	output := map[string]interface{}{
-		"blockNumber":   block.BlockNumber,
-		"prevBlockHash": block.PrevBlockHash,
-		"status":        block.Status,
+		"blockNumber":    block.BlockNumber,
+		"prevBlockHash":  block.PrevBlockHash,
+		"status":         block.Status,
 		"processingTime": block.ProcessingTime.String(),
-		"txns":          []map[string]Entry{},
+		"txns":           []map[string]Entry{},
 	}
 
 	for _, txn := range block.Txns {
