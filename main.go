@@ -44,7 +44,7 @@ type MyBlock struct {
 	BlockNumber   int
 	PrevBlockHash string
 	Status        BlockStatus
-	ProcessingTime time.Time
+	ProcessingTime time.Duration
 	Txns          map[string]Transaction
 }
 
@@ -160,7 +160,7 @@ func fetchAllBlockDetails() ([]MyBlock, error) {
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
-
+    startTime := time.Now()
 	db, err := leveldb.OpenFile("leveldb", nil)
 	if err != nil {
 		fmt.Println("Error opening LevelDB:", err)
@@ -220,7 +220,7 @@ func main() {
 
 	for i := 0; i < len(InputTxns); i += transactionsPerBlock {
 		wg.Add(1)
-		block.ProcessingTime = time.Now()
+		block.ProcessingTime = time.Since(startTime)
 		go block.pushValidTransactions(db, InputTxns[i:int(math.Min(float64(i+transactionsPerBlock), float64(len(InputTxns))))], &wg, txnChan)
 	}
 
