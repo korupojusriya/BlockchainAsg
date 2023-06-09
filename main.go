@@ -199,8 +199,20 @@ func main() {
 	totalTransactions := 10000
 	totalBlocks := int(math.Ceil(float64(totalTransactions) / float64(transactionsPerBlock)))
 
-	var blocks []MyBlock
-	prevBlockHash := "0xabc123" // Initial prevBlockHash value
+	prevBlockHash := "0xabc123" 
+	blockWriter := make(BlockWriter)
+
+	go func() {
+        var blocks []MyBlock
+        for block := range blockWriter {
+            blocks = append(blocks, block)
+            err := writeBlocksToFile(blocks)
+            if err != nil {
+                fmt.Println("Error writing blocks to file:", err)
+                return
+            }
+        }
+    }()
 
 	for blockNumber := 1; blockNumber <= totalBlocks; blockNumber++ {
 		block := MyBlock{
@@ -211,8 +223,8 @@ func main() {
 		}
 
         block.ProcessingTime = time.Since(startTime)
-		startIndex := (blockNumber - 1) * transactionsPerBlock
-		endIndex := startIndex + transactionsPerBlock
+		startIndex := (blockNumber - 1) * transactionsPerBlock+1
+		endIndex := blockNumber*transactionsPerBlock
 		if endIndex > totalTransactions {
 			endIndex = totalTransactions
 		}
@@ -249,16 +261,11 @@ func main() {
 		}
 
 		block.UpdateBlockStatus(Committed)
-
-		blocks = append(blocks, block)
+		blockWriter.WriteBlock(block) 
 		prevBlockHash = fmt.Sprintf("%x", sha256.Sum256([]byte(fmt.Sprintf("%s:%d", prevBlockHash, block.BlockNumber))))
 	}
+	close(blockWriter) 
 
-	err = writeBlocksToFile(blocks)
-	if err != nil {
-		fmt.Println("Error writing blocks to file:", err)
-		return
-	}
 	for
 	{
 	var blockNumber int
