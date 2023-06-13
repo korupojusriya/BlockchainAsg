@@ -23,7 +23,7 @@ const (
 )
 
 type Transaction struct {
-	TxnId   string
+	TxnId string
 	Value   []Entry
 	IsValid bool
 	Data    map[string]Entry
@@ -45,6 +45,7 @@ type Block interface {
 type MyBlock struct {
 	BlockNumber     int
 	PrevBlockHash   string
+	Hash            string
 	Status          BlockStatus
 	ProcessingTime  time.Duration
 	Txns            map[string]Transaction
@@ -73,6 +74,7 @@ func (b *MyBlock) pushValidTransactions(db *leveldb.DB, InputTxns []map[string]E
 						entry.Ver++
 						entry.Valid = true
 					} else {
+						entry.Ver= value.Ver
 						entry.Valid = false
 					}
 					entry.Hash = fmt.Sprintf("%x", hash)
@@ -89,7 +91,6 @@ func (b *MyBlock) pushValidTransactions(db *leveldb.DB, InputTxns []map[string]E
 	}
 
 	transaction := Transaction{
-		TxnId:   fmt.Sprintf("%x", sha256.Sum256([]byte(b.PrevBlockHash))),
 		Data:    newdb,
 		IsValid: true,
 	}
@@ -99,6 +100,8 @@ func (b *MyBlock) pushValidTransactions(db *leveldb.DB, InputTxns []map[string]E
 
 func (b *MyBlock) UpdateBlockStatus(status BlockStatus) {
 	b.Status = status
+	b.Hash = fmt.Sprintf("%x", sha256.Sum256([]byte(fmt.Sprintf("%s:%s", b.PrevBlockHash, status))))
+
 }
 
 type BlockWriter chan MyBlock
@@ -172,9 +175,26 @@ func main() {
 		return
 	}
 	defer db.Close()
+	for i := 1; i <= 10000; i++ {
+		key := fmt.Sprintf("SIM%d", i)
+		value := Entry{
+			Val:   float64(i),
+			Ver:   1.0,
+			Valid: true,
+		}
+		data, err := json.Marshal(value)
+		if err != nil {
+			log.Fatal("Error serializing entry:", err)
+		}
+
+		err = db.Put([]byte(key), data, nil)
+		if err != nil {
+			log.Fatal("Error inserting entry into LevelDB:", err)
+		}
+	}
 
 	args := os.Args[1:]
-	if len(args) < 2 {
+	if len(args) < 1 {
 		fmt.Println("Please provide values for TRANSACTIONS_PER_BLOCK and TOTAL_TRANSACTIONS.")
 		return
 	}
@@ -184,11 +204,7 @@ func main() {
 		return
 	}
 
-	totalTransactions, err := strconv.Atoi(args[1])
-	if err != nil || totalTransactions <= 0 {
-		fmt.Println("Invalid value for TOTAL_TRANSACTIONS.")
-		return
-	}
+	totalTransactions := 10000
 
 	totalBlocks := int(math.Ceil(float64(totalTransactions) / float64(transactionsPerBlock)))
 
@@ -216,8 +232,8 @@ func main() {
 		}
 
 		block.ProcessingTime = time.Since(startTime)
-		startIndex := (blockNumber - 1) * transactionsPerBlock + 1
-		endIndex := blockNumber * transactionsPerBlock
+		startIndex := (blockNumber - 1) * transactionsPerBlock
+		endIndex := startIndex + transactionsPerBlock
 		if endIndex > totalTransactions {
 			endIndex = totalTransactions
 		}
@@ -235,6 +251,7 @@ func main() {
 			txn[key] = value
 			InputTxns[i-startIndex] = txn
 		}
+
 
 		var wg sync.WaitGroup
 		txnChan := make(chan Transaction)
@@ -255,7 +272,7 @@ func main() {
 
 		block.UpdateBlockStatus(Committed)
 		blockWriter.WriteBlock(block)
-		prevBlockHash = fmt.Sprintf("%x", sha256.Sum256([]byte(fmt.Sprintf("%s:%d", prevBlockHash, block.BlockNumber))))
+		prevBlockHash = block.Hash
 	}
 	close(blockWriter)
 
@@ -274,11 +291,11 @@ func main() {
 		fmt.Println("Fetched Block Details:")
 		fmt.Println("Block Number:", fetchedBlock.BlockNumber)
 		fmt.Println("Prev Block Hash:", fetchedBlock.PrevBlockHash)
+		fmt.Println("Block Hash:",fetchedBlock.Hash)
 		fmt.Println("Block Status:", fetchedBlock.Status)
 		fmt.Println("Processing Time:", fetchedBlock.ProcessingTime)
 		fmt.Printf("Transactions:\n")
-		for txnID, txn := range fetchedBlock.Txns {
-			fmt.Printf("  TxnID: %s\n", txnID)
+		for _, txn := range fetchedBlock.Txns {
 			fmt.Printf("  IsValid: %t\n", txn.IsValid)
 			fmt.Printf("  Data:\n")
 			for key, entry := range txn.Data {
@@ -307,11 +324,11 @@ func main() {
 	for _, b := range allBlocks {
 		fmt.Println("Block Number:", b.BlockNumber)
 		fmt.Println("Prev Block Hash:", b.PrevBlockHash)
+		fmt.Println("Block Hash:",b.Hash)
 		fmt.Println("Block Status:", b.Status)
 		fmt.Println("Processing Time:", b.ProcessingTime)
 		fmt.Println("Transactions:")
-		for txnID, txn := range b.Txns {
-			fmt.Println("  Transaction ID:", txnID)
+		for _, txn := range b.Txns {
 			fmt.Println("  IsValid:", txn.IsValid)
 			fmt.Println("  Data:")
 			for key, entry := range txn.Data {
